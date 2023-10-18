@@ -27,13 +27,13 @@ import textwrap
 import matplotlib.pyplot as plt
 matplotlib.use("Agg")
 
-__author__ = "Your Name"
+__author__ = "Quentin"
 __copyright__ = "Universite Paris Diderot"
-__credits__ = ["Your Name"]
+__credits__ = ["Quentin"]
 __license__ = "GPL"
 __version__ = "1.0.0"
-__maintainer__ = "Your Name"
-__email__ = "your@email.fr"
+__maintainer__ = "Quentin"
+__email__ = "quentin.capdet@gmail.com"
 __status__ = "Developpement"
 
 def isfile(path): # pragma: no cover
@@ -77,11 +77,22 @@ def get_arguments(): # pragma: no cover
 
 def read_fastq(fastq_file):
     """Extract reads from fastq files.
-
+    
     :param fastq_file: (str) Path to the fastq file.
-    :return: A generator object that iterate the read sequences. 
+    :return: A generator object that iterate the read sequences
     """
-    pass
+    with open(fastq_file, "r") as file:
+        while True:
+            try:
+                next(file)  
+                sequence = next(file).strip()  
+                next(file)  
+                next(file)  
+                
+                yield sequence
+            except StopIteration:
+                break
+
 
 
 def cut_kmer(read, kmer_size):
@@ -90,7 +101,8 @@ def cut_kmer(read, kmer_size):
     :param read: (str) Sequence of a read.
     :return: A generator object that iterate the kmers of of size kmer_size.
     """
-    pass
+    for i in range(0, len(read) - kmer_size + 1):
+        yield read[i:i + kmer_size]
 
 
 def build_kmer_dict(fastq_file, kmer_size):
@@ -99,7 +111,18 @@ def build_kmer_dict(fastq_file, kmer_size):
     :param fastq_file: (str) Path to the fastq file.
     :return: A dictionnary object that identify all kmer occurrences.
     """
-    pass
+    kmer_dict = {}
+
+    for read in read_fastq(fastq_file):
+        for kmer in cut_kmer(read, kmer_size):
+            if kmer in kmer_dict:
+                kmer_dict[kmer] += 1
+            else:
+                kmer_dict[kmer] = 1
+
+    return kmer_dict 
+
+
 
 
 def build_graph(kmer_dict):
@@ -108,7 +131,21 @@ def build_graph(kmer_dict):
     :param kmer_dict: A dictionnary object that identify all kmer occurrences.
     :return: A directed graph (nx) of all kmer substring and weight (occurrence).
     """
-    pass
+    graph = nx.DiGraph()
+
+    for kmer, count in kmer_dict.items():
+        prefix = kmer[:-1]  
+        suffix = kmer[1:]  
+
+        if prefix not in graph:
+            graph.add_node(prefix)
+        if suffix not in graph:
+            graph.add_node(suffix)
+
+        graph.add_edge(prefix, suffix, weight=count)
+
+    return graph
+
 
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
@@ -187,7 +224,12 @@ def get_starting_nodes(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (list) A list of all nodes without predecessors
     """
-    pass
+    starting_nodes = []
+    for node in graph.nodes():
+        if len(list(graph.predecessors(node))) == 0:
+            starting_nodes.append(node)
+
+    return starting_nodes
 
 def get_sink_nodes(graph):
     """Get nodes without successors
@@ -195,7 +237,12 @@ def get_sink_nodes(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (list) A list of all nodes without successors
     """
-    pass
+    ending_nodes = []
+    for node in graph.nodes():
+        if len(list(graph.successors(node))) == 0:
+            ending_nodes.append(node)
+
+    return ending_nodes
 
 def get_contigs(graph, starting_nodes, ending_nodes):
     """Extract the contigs from the graph
@@ -205,7 +252,19 @@ def get_contigs(graph, starting_nodes, ending_nodes):
     :param ending_nodes: (list) A list of nodes without successors
     :return: (list) List of [contiguous sequence and their length]
     """
-    pass
+    contigs_list = []
+
+    for start in starting_nodes:
+        for end in ending_nodes:
+            if nx.has_path(graph, start, end):
+                for path in nx.all_simple_paths(graph, start, end):
+                    contig = path[0]
+                    for i in range(1, len(path)):
+                        contig = contig + path[i][-1]
+                    
+                    contigs_list.append((contig, len(contig)))
+    return contigs_list
+
 
 def save_contigs(contigs_list, output_file):
     """Write all contigs in fasta format
@@ -213,7 +272,12 @@ def save_contigs(contigs_list, output_file):
     :param contig_list: (list) List of [contiguous sequence and their length]
     :param output_file: (str) Path to the output file
     """
-    pass
+    with open(output_file, "w") as file:
+        for i, val in enumerate(contigs_list):
+            contig = val[0]
+            wrap = textwrap.fill(contig, width=80)
+            file.write(f'>contig_{i} len={val[1]}\n{wrap}\n')
+
 
 
 def draw_graph(graph, graphimg_file): # pragma: no cover
@@ -247,14 +311,19 @@ def main(): # pragma: no cover
     Main program function
     """
     # Get arguments
-    args = get_arguments()
-
+    """ args = get_arguments()
+    kmer_dict = build_kmer_dict(fastq_file, kmer_size)
+    graph = build_graph(kmer_dict)
+    start = get_starting_nodes(graph)
+    end = get_sink_nodes(graph)
+    contigs = get_contigs(graph, starting_nodes, ending_nodes) """
+ 
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
     # graphe
     # Plot the graph
-    # if args.graphimg_file:
-    #     draw_graph(graph, args.graphimg_file)
+    #if args.graphimg_file:
+    #    draw_graph(graph, args.graphimg_file)
 
 
 if __name__ == '__main__': # pragma: no cover
