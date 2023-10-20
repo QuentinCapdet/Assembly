@@ -284,7 +284,31 @@ def solve_entry_tips(graph, starting_nodes):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (nx.DiGraph) A directed graph object
     """
-    pass
+    nodes_with_multi_pred = [node for node, degree in graph.in_degree() if degree > 1]
+    
+    for node in nodes_with_multi_pred:
+        pred = list(graph.predecessors(node))
+        
+        if any(predecessor in starting_nodes for predecessor in pred):
+            # Extract paths from starting nodes to the current node
+            paths_from_starting = [list(nx.all_simple_paths(graph, source=start, target=node))[0] for start in starting_nodes if nx.has_path(graph, start, node)]
+            
+            # Calculate the weights of these paths
+            path_wgt = []
+            for path in paths_from_starting:
+                wgts = [graph[path[i]][path[i+1]].get('weight', 1) for i in range(len(path)-1)]
+                path_wgt.append(sum(wgts))
+            
+            # Determine the main path
+            main_path_index = path_wgt.index(max(path_wgt))
+            
+            # Remove other paths
+            for i, path in enumerate(paths_from_starting):
+                if i != main_path_index:
+                    for j in range(len(path) - 1):
+                        graph.remove_edge(path[j], path[j+1])
+    
+    return graph
 
 def solve_out_tips(graph, ending_nodes):
     """Remove out tips
@@ -292,7 +316,24 @@ def solve_out_tips(graph, ending_nodes):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (nx.DiGraph) A directed graph object
     """
-    pass
+     # Pour chaque nœud du graphe
+    for node in graph.nodes():
+        # Récupération des successeurs
+        successors = list(graph.successors(node))
+        
+        # Si le nœud a plus d'un successeur
+        if len(successors) > 1:
+            # Récupération des poids des arêtes vers les successeurs
+            weights = [graph[node][succ]['weight'] for succ in successors]
+            
+            # On supprime l'arête avec le poids le plus faible
+            min_weight = min(weights)
+            for succ in successors:
+                if graph[node][succ]['weight'] == min_weight:
+                    graph.remove_edge(node, succ)
+                    break # On sort de la boucle dès la suppression
+
+    return graph
 
 def get_starting_nodes(graph):
     """Get nodes without predecessors
@@ -387,12 +428,13 @@ def main(): # pragma: no cover
     Main program function
     """
     # Get arguments
-    """ args = get_arguments()
+    args = get_arguments()
+    
     kmer_dict = build_kmer_dict(fastq_file, kmer_size)
     graph = build_graph(kmer_dict)
     start = get_starting_nodes(graph)
     end = get_sink_nodes(graph)
-    contigs = get_contigs(graph, starting_nodes, ending_nodes) """
+    contigs = get_contigs(graph, starting_nodes, ending_nodes)
  
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
