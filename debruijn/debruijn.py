@@ -158,9 +158,7 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     :param delete_sink_node: (boolean) True->We remove the last node of a path
     :return: (nx.DiGraph) A directed graph object
     """
-    #print(path_list)
-    #print(delete_entry_node, delete_sink_node)
-    #Graph.remove_nodes_from(path) #supprime les noeuds d’un chemin
+
     for path in path_list:
         if delete_entry_node == True and delete_sink_node == True:
             graph.remove_nodes_from(path)
@@ -187,22 +185,17 @@ def select_best_path(graph, path_list, path_length, weight_avg_list,
     :return: (nx.DiGraph) A directed graph object
     """
 
-    # Calculate standard deviation for weight average and path length
     weight_stddev = statistics.stdev(weight_avg_list)
     length_stddev = statistics.stdev(path_length)
-    #print(path_list)
-    # If weight_stddev is greater than 0, select the path with the highest weight_avg
+    
     if weight_stddev > 0:
         best_path_index = weight_avg_list.index(max(weight_avg_list))
-    # If weight_stddev is 0 and length_stddev is greater than 0, select the longest path
     elif length_stddev > 0:
         best_path_index = path_length.index(max(path_length))
-    # If both stddevs are 0, choose randomly among paths
     else:
         best_path_index = random.randint(0, len(path_list) - 1)
 
     best_path = path_list[best_path_index]
-    #print(path_list[best_path_index])
 
     # Remove unwanted nodes
     for path in path_list:
@@ -235,10 +228,7 @@ def solve_bubble(graph, ancestor_node, descendant_node):
     :param descendant_node: (str) A downstream node in the graph
     :return: (nx.DiGraph) A directed graph object
     """
-    
-    """ solve_bubble sera appelée lorsqu’une bulle sera  détectée entre un nœud ancêtre et un nœud descendant. 
-    Il devra déterminer les chemins “simples” possible entre deux nœuds (un ancêtre et un descendant) et 
-    calculer la longueur et le poids de ces chemins. Puis fait appel à select_best_path pour  faire le choix final. """
+    #wgt = weight !!
    
     path_data = []
 
@@ -290,19 +280,15 @@ def solve_entry_tips(graph, starting_nodes):
         pred = list(graph.predecessors(node))
         
         if any(predecessor in starting_nodes for predecessor in pred):
-            # Extract paths from starting nodes to the current node
             paths_from_starting = [list(nx.all_simple_paths(graph, source=start, target=node))[0] for start in starting_nodes if nx.has_path(graph, start, node)]
-            
-            # Calculate the weights of these paths
+
             path_wgt = []
             for path in paths_from_starting:
                 wgts = [graph[path[i]][path[i+1]].get('weight', 1) for i in range(len(path)-1)]
                 path_wgt.append(sum(wgts))
             
-            # Determine the main path
             main_path_index = path_wgt.index(max(path_wgt))
             
-            # Remove other paths
             for i, path in enumerate(paths_from_starting):
                 if i != main_path_index:
                     for j in range(len(path) - 1):
@@ -316,22 +302,18 @@ def solve_out_tips(graph, ending_nodes):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (nx.DiGraph) A directed graph object
     """
-     # Pour chaque nœud du graphe
+
     for node in graph.nodes():
-        # Récupération des successeurs
         successors = list(graph.successors(node))
         
-        # Si le nœud a plus d'un successeur
         if len(successors) > 1:
-            # Récupération des poids des arêtes vers les successeurs
-            weights = [graph[node][succ]['weight'] for succ in successors]
+            wgts = [graph[node][succ]['weight'] for succ in successors]
             
-            # On supprime l'arête avec le poids le plus faible
-            min_weight = min(weights)
+            min_wgt = min(wgts)
             for succ in successors:
-                if graph[node][succ]['weight'] == min_weight:
+                if graph[node][succ]['weight'] == min_wgt:
                     graph.remove_edge(node, succ)
-                    break # On sort de la boucle dès la suppression
+                    break
 
     return graph
 
@@ -354,6 +336,7 @@ def get_sink_nodes(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (list) A list of all nodes without successors
     """
+    
     ending_nodes = []
     for node in graph.nodes():
         if len(list(graph.successors(node))) == 0:
@@ -431,7 +414,6 @@ def main(): # pragma: no cover
     # Get arguments
     args = get_arguments()
 
-    #seq = read_fastq(args.fastq_file)
     kmer_dict = build_kmer_dict(args.fastq_file, args.kmer_size)
     graph = build_graph(kmer_dict)
     graph = simplify_bubbles(graph)
