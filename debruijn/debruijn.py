@@ -427,14 +427,27 @@ def main(): # pragma: no cover
     """
     Main program function
     """
+
     # Get arguments
     args = get_arguments()
-    
-    kmer_dict = build_kmer_dict(fastq_file, kmer_size)
+
+    #seq = read_fastq(args.fastq_file)
+    kmer_dict = build_kmer_dict(args.fastq_file, args.kmer_size)
     graph = build_graph(kmer_dict)
+    graph = simplify_bubbles(graph)
+    
     start = get_starting_nodes(graph)
     end = get_sink_nodes(graph)
-    contigs = get_contigs(graph, starting_nodes, ending_nodes)
+
+    graph = solve_entry_tips(graph, start)
+    graph = solve_out_tips(graph, end)
+    
+    start = get_starting_nodes(graph)
+    end = get_sink_nodes(graph)
+    contigs = get_contigs(graph, start, end)
+
+    
+    save_contigs(contigs, args.output_file)
  
     # Fonctions de dessin du graphe
     # A decommenter si vous souhaitez visualiser un petit 
